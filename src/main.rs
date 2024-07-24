@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use eframe::NativeOptions;
 use egui::{CentralPanel, Ui};
 
@@ -41,16 +39,13 @@ impl eframe::App for App {
 struct Process {
     pid: u64,
     cmdline: String,
-    exe: Option<PathBuf>,
 }
 
 impl Process {
     fn show(&self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.label(self.pid.to_string());
-            if let Some(exe) = &self.exe {
-                ui.label(exe.to_str().unwrap());
-            }
+            ui.separator();
             ui.label(&self.cmdline);
         });
 
@@ -65,9 +60,10 @@ fn parse_processes() -> Vec<Process> {
         match entry {
             Ok(entry) => {
                 if let Ok(pid) = entry.file_name().into_string().unwrap().parse::<u64>() {
-                    let cmdline = std::fs::read_to_string(entry.path().join("cmdline")).unwrap();
-                    let exe = entry.path().join("exe").read_link().ok();
-                    let process = Process { pid, cmdline, exe };
+                    let cmdline = std::fs::read_to_string(entry.path().join("cmdline"))
+                        .unwrap()
+                        .replace('\0', " ");
+                    let process = Process { pid, cmdline };
                     processes.push(process);
                 }
             }
