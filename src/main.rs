@@ -2,6 +2,7 @@ use std::{
     fmt::Display,
     fs::DirEntry,
     io::{BufRead, Cursor, Read},
+    ops::Range,
 };
 
 use eframe::NativeOptions;
@@ -23,12 +24,14 @@ fn main() {
 
 struct App {
     processes: Vec<Process>,
+    profiling: bool,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             processes: parse_processes(),
+            profiling: std::env::var("PROFILING").is_ok(),
         }
     }
 }
@@ -38,7 +41,10 @@ impl eframe::App for App {
         puffin::profile_function!();
         puffin::GlobalProfiler::lock().new_frame();
 
-        puffin_egui::profiler_window(ctx);
+        if self.profiling {
+            puffin_egui::profiler_window(ctx);
+        }
+
         let mut style = (*ctx.style()).clone();
 
         style.text_styles = [
@@ -59,11 +65,17 @@ impl eframe::App for App {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading(RichText::new("Processes").color(Color32::WHITE));
 
-            egui::ScrollArea::both().show(ui, |ui| {
-                for process in &self.processes {
-                    process.show(ui);
-                }
-            });
+            egui::ScrollArea::both().show_rows(
+                ui,
+                ui.text_style_height(&TextStyle::Body) * 2.0,
+                self.processes.len(),
+                |ui, row_range| {
+                    let Range { start, end } = row_range;
+                    for process in &self.processes[start..end] {
+                        process.show(ui);
+                    }
+                },
+            );
         });
     }
 }
