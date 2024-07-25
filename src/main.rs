@@ -65,7 +65,7 @@ impl eframe::App for App {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading(RichText::new("Processes").color(Color32::WHITE));
 
-            egui::ScrollArea::both().show_rows(
+            egui::ScrollArea::both().auto_shrink(false).show_rows(
                 ui,
                 ui.text_style_height(&TextStyle::Body),
                 self.processes.len(),
