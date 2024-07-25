@@ -1,5 +1,5 @@
 use eframe::NativeOptions;
-use egui::{CentralPanel, Ui};
+use egui::{CentralPanel, Color32, FontFamily, FontId, RichText, TextStyle, Ui};
 
 fn main() {
     eframe::run_native(
@@ -24,8 +24,20 @@ impl Default for App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let mut style = (*ctx.style()).clone();
+
+        style.text_styles = [
+            (TextStyle::Heading, FontId::new(25.0, FontFamily::Monospace)),
+            (TextStyle::Body, FontId::new(14.0, FontFamily::Monospace)),
+        ]
+        .into();
+
+        style.visuals.panel_fill = Color32::BLACK;
+
+        ctx.set_style(style);
+
         CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Processes");
+            ui.heading(RichText::new("Processes").color(Color32::WHITE));
 
             egui::ScrollArea::vertical().show(ui, |ui| {
                 for process in &self.processes {
@@ -44,9 +56,8 @@ struct Process {
 impl Process {
     fn show(&self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            ui.label(self.pid.to_string());
-            ui.separator();
-            ui.label(&self.cmdline);
+            ui.label(RichText::new(self.pid.to_string()).color(Color32::WHITE));
+            ui.label(RichText::new(&self.cmdline).color(Color32::WHITE));
         });
 
         ui.separator();
