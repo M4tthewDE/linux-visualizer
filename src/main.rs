@@ -1,6 +1,7 @@
 use std::{
+    fmt::Display,
     fs::DirEntry,
-    io::{BufRead, Cursor},
+    io::{BufRead, Cursor, Read},
 };
 
 use eframe::NativeOptions;
@@ -53,6 +54,7 @@ impl eframe::App for App {
     }
 }
 
+/// https://docs.kernel.org/filesystems/proc.html
 struct Process {
     pid: u64,
     cmdline: String,
@@ -70,6 +72,8 @@ impl Process {
         ui.horizontal(|ui| {
             ui.label(RichText::new("Tcomm:").strong().color(Color32::WHITE));
             ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
+            ui.label(RichText::new("State:").strong().color(Color32::WHITE));
+            ui.label(RichText::new(self.stats.state.to_string()).color(Color32::LIGHT_GRAY));
         });
 
         ui.separator();
@@ -105,6 +109,7 @@ fn parse_processes() -> Vec<Process> {
 struct ProcessStats {
     _pid: u64,
     tcomm: String,
+    state: ProcessState,
 }
 
 fn parse_stats(entry: &DirEntry) -> ProcessStats {
@@ -124,5 +129,42 @@ fn parse_stats(entry: &DirEntry) -> ProcessStats {
     let tcomm = String::from_utf8(tcomm_bytes).unwrap();
     let tcomm = tcomm[1..tcomm.len() - 1].to_string();
 
-    ProcessStats { _pid, tcomm }
+    c.read_until(b' ', &mut Vec::new()).unwrap();
+
+    let mut state_byte = vec![0; 1];
+    c.read_exact(&mut state_byte).unwrap();
+
+    let state = match state_byte[0] {
+        b'R' => ProcessState::Running,
+        b'S' => ProcessState::Sleeping,
+        b'D' => ProcessState::UninterruptibleSleeping,
+        b'Z' => ProcessState::Zombie,
+        b'T' => ProcessState::Stopped,
+        b'I' => ProcessState::Idle,
+        b => panic!("unknown state {}", b),
+    };
+
+    ProcessStats { _pid, tcomm, state }
+}
+
+enum ProcessState {
+    Running,
+    Sleeping,
+    UninterruptibleSleeping,
+    Stopped,
+    Zombie,
+    Idle,
+}
+
+impl Display for ProcessState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProcessState::Running => write!(f, "Running"),
+            ProcessState::Sleeping => write!(f, "Sleeping"),
+            ProcessState::UninterruptibleSleeping => write!(f, "Uninterruptable Sleep"),
+            ProcessState::Stopped => write!(f, "Stopped"),
+            ProcessState::Zombie => write!(f, "Zombie"),
+            ProcessState::Idle => write!(f, "Idle"),
+        }
+    }
 }
