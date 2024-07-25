@@ -1,3 +1,8 @@
+use std::{
+    fs::DirEntry,
+    io::{BufRead, Cursor},
+};
+
 use eframe::NativeOptions;
 use egui::{CentralPanel, Color32, FontFamily, FontId, RichText, TextStyle, Ui};
 
@@ -51,6 +56,8 @@ impl eframe::App for App {
 struct Process {
     pid: u64,
     cmdline: String,
+
+    stats: ProcessStats,
 }
 
 impl Process {
@@ -58,6 +65,11 @@ impl Process {
         ui.horizontal(|ui| {
             ui.label(RichText::new(self.pid.to_string()).color(Color32::WHITE));
             ui.label(RichText::new(&self.cmdline).color(Color32::WHITE));
+        });
+
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Name:").strong().color(Color32::WHITE));
+            ui.label(RichText::new(&self.stats.name).color(Color32::LIGHT_GRAY));
         });
 
         ui.separator();
@@ -74,7 +86,12 @@ fn parse_processes() -> Vec<Process> {
                     let cmdline = std::fs::read_to_string(entry.path().join("cmdline"))
                         .unwrap()
                         .replace('\0', " ");
-                    let process = Process { pid, cmdline };
+                    let stats = parse_stats(&entry);
+                    let process = Process {
+                        pid,
+                        cmdline,
+                        stats,
+                    };
                     processes.push(process);
                 }
             }
@@ -83,4 +100,29 @@ fn parse_processes() -> Vec<Process> {
     }
 
     processes
+}
+
+struct ProcessStats {
+    _pid: u64,
+    name: String,
+}
+
+fn parse_stats(entry: &DirEntry) -> ProcessStats {
+    let bytes = std::fs::read(entry.path().join("stat")).unwrap();
+    let mut c = Cursor::new(bytes);
+
+    let mut pid_bytes = Vec::new();
+    c.read_until(b' ', &mut pid_bytes).unwrap();
+    let _pid = String::from_utf8(pid_bytes)
+        .unwrap()
+        .trim()
+        .parse::<u64>()
+        .unwrap();
+
+    let mut name_bytes = Vec::new();
+    c.read_until(b')', &mut name_bytes).unwrap();
+    let name = String::from_utf8(name_bytes).unwrap();
+    let name = name[1..name.len() - 1].to_string();
+
+    ProcessStats { _pid, name }
 }
