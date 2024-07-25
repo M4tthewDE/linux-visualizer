@@ -67,7 +67,7 @@ impl eframe::App for App {
 
             egui::ScrollArea::both().show_rows(
                 ui,
-                ui.text_style_height(&TextStyle::Body) * 2.0,
+                ui.text_style_height(&TextStyle::Body),
                 self.processes.len(),
                 |ui, row_range| {
                     let Range { start, end } = row_range;
@@ -91,19 +91,21 @@ struct Process {
 impl Process {
     fn show(&self, ui: &mut Ui) {
         puffin::profile_function!();
-        ui.horizontal(|ui| {
-            ui.label(RichText::new(self.pid.to_string()).color(Color32::WHITE));
-            ui.label(RichText::new(&self.cmdline).color(Color32::LIGHT_GRAY));
-        });
 
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("Tcomm").italics().color(Color32::WHITE));
-            ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
-            ui.label(RichText::new("State").italics().color(Color32::WHITE));
-            ui.label(RichText::new(self.stats.state.to_string()).color(Color32::LIGHT_GRAY));
-        });
-
-        ui.separator();
+        ui.collapsing(
+            RichText::new(format!("{} {}", self.pid.to_string(), self.cmdline))
+                .color(Color32::WHITE),
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("Tcomm").italics().color(Color32::WHITE));
+                    ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
+                    ui.label(RichText::new("State").italics().color(Color32::WHITE));
+                    ui.label(
+                        RichText::new(self.stats.state.to_string()).color(Color32::LIGHT_GRAY),
+                    );
+                });
+            },
+        );
     }
 }
 
