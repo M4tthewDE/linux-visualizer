@@ -6,7 +6,7 @@ use std::{
 };
 
 use eframe::NativeOptions;
-use egui::{CentralPanel, Color32, FontFamily, FontId, RichText, TextStyle, Ui};
+use egui::{CentralPanel, Color32, FontFamily, FontId, RichText, TextEdit, TextStyle, Ui, Widget};
 
 fn main() {
     let profiler = std::env::var("PROFILING").is_ok();
@@ -25,6 +25,7 @@ fn main() {
 struct App {
     processes: Vec<Process>,
     profiling: bool,
+    search_text: String,
 }
 
 impl Default for App {
@@ -32,6 +33,7 @@ impl Default for App {
         Self {
             processes: parse_processes(),
             profiling: std::env::var("PROFILING").is_ok(),
+            search_text: "".to_string(),
         }
     }
 }
@@ -47,6 +49,10 @@ impl eframe::App for App {
 
         let mut style = (*ctx.style()).clone();
 
+        style.visuals.panel_fill = Color32::BLACK;
+        style.visuals.extreme_bg_color = Color32::WHITE;
+        style.visuals.text_cursor.color = Color32::BLACK;
+
         style.text_styles = [
             (TextStyle::Heading, FontId::new(25.0, FontFamily::Monospace)),
             (TextStyle::Body, FontId::new(14.0, FontFamily::Monospace)),
@@ -58,20 +64,37 @@ impl eframe::App for App {
         ]
         .into();
 
-        style.visuals.panel_fill = Color32::BLACK;
-
         ctx.set_style(style);
 
         CentralPanel::default().show(ctx, |ui| {
             ui.heading(RichText::new("Processes").color(Color32::WHITE));
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Search").color(Color32::WHITE));
+                TextEdit::singleline(&mut self.search_text)
+                    .text_color(Color32::BLACK)
+                    .ui(ui);
+            });
+
+            ui.separator();
+
+            let processes = if self.search_text.is_empty() {
+                self.processes.clone()
+            } else {
+                self.processes
+                    .iter()
+                    .filter(|p| p.contains(&self.search_text))
+                    .cloned()
+                    .collect()
+            };
 
             egui::ScrollArea::both().auto_shrink(false).show_rows(
                 ui,
                 ui.text_style_height(&TextStyle::Body),
-                self.processes.len(),
+                processes.len(),
                 |ui, row_range| {
                     let Range { start, end } = row_range;
-                    for process in &self.processes[start..end] {
+
+                    for process in &processes[start..end] {
                         process.show(ui);
                     }
                 },
@@ -81,6 +104,7 @@ impl eframe::App for App {
 }
 
 /// https://docs.kernel.org/filesystems/proc.html
+#[derive(Clone)]
 struct Process {
     pid: u64,
     cmdline: String,
@@ -93,8 +117,7 @@ impl Process {
         puffin::profile_function!();
 
         ui.collapsing(
-            RichText::new(format!("{} {}", self.pid.to_string(), self.cmdline))
-                .color(Color32::WHITE),
+            RichText::new(format!("{} {}", self.pid, self.cmdline)).color(Color32::WHITE),
             |ui| {
                 ui.horizontal(|ui| {
                     ui.label(RichText::new("Tcomm").color(Color32::WHITE));
@@ -107,6 +130,12 @@ impl Process {
                 });
             },
         );
+    }
+
+    fn contains(&self, search_text: &str) -> bool {
+        self.pid.to_string().contains(search_text)
+            || self.cmdline.contains(search_text)
+            || self.stats.contains(search_text)
     }
 }
 
@@ -136,10 +165,17 @@ fn parse_processes() -> Vec<Process> {
     processes
 }
 
+#[derive(Clone)]
 struct ProcessStats {
     _pid: u64,
     tcomm: String,
     state: ProcessState,
+}
+
+impl ProcessStats {
+    fn contains(&self, search_text: &str) -> bool {
+        self.tcomm.contains(search_text)
+    }
 }
 
 fn parse_stats(entry: &DirEntry) -> ProcessStats {
@@ -177,6 +213,7 @@ fn parse_stats(entry: &DirEntry) -> ProcessStats {
     ProcessStats { _pid, tcomm, state }
 }
 
+#[derive(Clone)]
 enum ProcessState {
     Running,
     Sleeping,
