@@ -97,9 +97,10 @@ impl Process {
                 .color(Color32::WHITE),
             |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(RichText::new("Tcomm").italics().color(Color32::WHITE));
+                    ui.label(RichText::new("Tcomm").color(Color32::WHITE));
                     ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
-                    ui.label(RichText::new("State").italics().color(Color32::WHITE));
+                    ui.separator();
+                    ui.label(RichText::new("State").color(Color32::WHITE));
                     ui.label(
                         RichText::new(self.stats.state.to_string()).color(Color32::LIGHT_GRAY),
                     );
