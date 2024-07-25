@@ -39,7 +39,7 @@ impl eframe::App for App {
         CentralPanel::default().show(ctx, |ui| {
             ui.heading(RichText::new("Processes").color(Color32::WHITE));
 
-            egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::ScrollArea::both().show(ui, |ui| {
                 for process in &self.processes {
                     process.show(ui);
                 }
