@@ -68,8 +68,8 @@ impl Process {
         });
 
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Name:").strong().color(Color32::WHITE));
-            ui.label(RichText::new(&self.stats.name).color(Color32::LIGHT_GRAY));
+            ui.label(RichText::new("Tcomm:").strong().color(Color32::WHITE));
+            ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
         });
 
         ui.separator();
@@ -104,7 +104,7 @@ fn parse_processes() -> Vec<Process> {
 
 struct ProcessStats {
     _pid: u64,
-    name: String,
+    tcomm: String,
 }
 
 fn parse_stats(entry: &DirEntry) -> ProcessStats {
@@ -119,10 +119,10 @@ fn parse_stats(entry: &DirEntry) -> ProcessStats {
         .parse::<u64>()
         .unwrap();
 
-    let mut name_bytes = Vec::new();
-    c.read_until(b')', &mut name_bytes).unwrap();
-    let name = String::from_utf8(name_bytes).unwrap();
-    let name = name[1..name.len() - 1].to_string();
+    let mut tcomm_bytes = Vec::new();
+    c.read_until(b')', &mut tcomm_bytes).unwrap();
+    let tcomm = String::from_utf8(tcomm_bytes).unwrap();
+    let tcomm = tcomm[1..tcomm.len() - 1].to_string();
 
-    ProcessStats { _pid, name }
+    ProcessStats { _pid, tcomm }
 }
