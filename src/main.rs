@@ -8,10 +8,15 @@ use eframe::NativeOptions;
 use egui::{CentralPanel, Color32, FontFamily, FontId, RichText, TextStyle, Ui};
 
 fn main() {
+    let profiler = std::env::var("PROFILING").is_ok();
+    if profiler {
+        puffin::set_scopes_on(true);
+    }
+
     eframe::run_native(
         "Linux Explorer",
         NativeOptions::default(),
-        Box::new(|_cc| Ok(Box::<App>::default())),
+        Box::new(|_cc| Box::<App>::default()),
     )
     .unwrap();
 }
@@ -30,11 +35,20 @@ impl Default for App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        puffin::profile_function!();
+        puffin::GlobalProfiler::lock().new_frame();
+
+        puffin_egui::profiler_window(ctx);
         let mut style = (*ctx.style()).clone();
 
         style.text_styles = [
             (TextStyle::Heading, FontId::new(25.0, FontFamily::Monospace)),
             (TextStyle::Body, FontId::new(14.0, FontFamily::Monospace)),
+            (TextStyle::Button, FontId::new(14.0, FontFamily::Monospace)),
+            (
+                TextStyle::Monospace,
+                FontId::new(14.0, FontFamily::Monospace),
+            ),
         ]
         .into();
 
@@ -64,6 +78,7 @@ struct Process {
 
 impl Process {
     fn show(&self, ui: &mut Ui) {
+        puffin::profile_function!();
         ui.horizontal(|ui| {
             ui.label(RichText::new(self.pid.to_string()).color(Color32::WHITE));
             ui.label(RichText::new(&self.cmdline).color(Color32::WHITE));
