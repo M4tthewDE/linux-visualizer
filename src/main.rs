@@ -93,13 +93,13 @@ impl Process {
         puffin::profile_function!();
         ui.horizontal(|ui| {
             ui.label(RichText::new(self.pid.to_string()).color(Color32::WHITE));
-            ui.label(RichText::new(&self.cmdline).color(Color32::WHITE));
+            ui.label(RichText::new(&self.cmdline).color(Color32::LIGHT_GRAY));
         });
 
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Tcomm:").strong().color(Color32::WHITE));
+            ui.label(RichText::new("Tcomm").italics().color(Color32::WHITE));
             ui.label(RichText::new(&self.stats.tcomm).color(Color32::LIGHT_GRAY));
-            ui.label(RichText::new("State:").strong().color(Color32::WHITE));
+            ui.label(RichText::new("State").italics().color(Color32::WHITE));
             ui.label(RichText::new(self.stats.state.to_string()).color(Color32::LIGHT_GRAY));
         });
 
